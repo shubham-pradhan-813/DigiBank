@@ -1,0 +1,173 @@
+<!DOCTYPE html>
+<html lang="en" data-theme="dark">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Check Balance - Digital Banking System</title>
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/css/bootstrap.min.css" rel="stylesheet">
+    <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.2/css/all.min.css" rel="stylesheet">
+    <link href="style.css" rel="stylesheet">
+</head>
+<body>
+    
+    <!-- Header -->
+    <header>
+        <a href="index.html" class="logo">
+            <i class="fas fa-university"></i>
+            <span>DigiBank</span>
+        </a>
+        <div class="header-actions">
+            <a href="dashboard.html" class="nav-btn">
+                <i class="fas fa-th-large"></i>
+                <span>Dashboard</span>
+            </a>
+            <button class="theme-toggle" onclick="toggleTheme()" title="Toggle Theme"></button>
+        </div>
+    </header>
+    
+    <!-- Main Content -->
+    <div class="main-container">
+        <div class="card">
+            <div class="card-header">
+                <span class="icon">💳</span>
+                <h2>Check Balance</h2>
+                <p>View your account balance</p>
+            </div>
+            
+            <form id="balanceForm" novalidate>
+                <div class="form-group">
+                    <label>Account Number <span class="required">*</span></label>
+                    <div class="input-icon">
+                        <i class="fas fa-credit-card"></i>
+                        <input type="text" id="accountNo" 
+                               placeholder="Enter account number" 
+                               data-label="Account Number"
+                               list="accountsList"
+                               inputmode="numeric"
+                               autocomplete="off">
+                    </div>
+                    <div class="error-message"></div>
+                </div>
+                
+                <button type="submit" class="btn btn-primary" id="submitBtn">
+                    <i class="fas fa-search"></i>
+                    Check Balance
+                </button>
+                
+                <div class="btn-group">
+                    <a href="dashboard.html" class="btn btn-outline">
+                        <i class="fas fa-arrow-left"></i>
+                        Back to Dashboard
+                    </a>
+                </div>
+            </form>
+            
+            <div id="result" class="result"></div>
+            
+            <!-- Balance Display -->
+            <div id="balanceDisplay" style="display: none;">
+                <div class="account-info show">
+                    <div class="info-row">
+                        <span class="info-label">Account Number:</span>
+                        <span class="info-value" id="displayAccNo">-</span>
+                    </div>
+                    <div class="info-row">
+                        <span class="info-label">Account Holder:</span>
+                        <span class="info-value" id="displayName">-</span>
+                    </div>
+                    <div class="info-row">
+                        <span class="info-label">Account Type:</span>
+                        <span class="info-value" id="displayType">-</span>
+                    </div>
+                </div>
+                
+                <div class="balance-display">
+                    <div class="label">Available Balance</div>
+                    <div class="amount">
+                        <span class="currency">₹</span>
+                        <span id="displayBalance">0.00</span>
+                    </div>
+                </div>
+                
+                <div class="btn-group" style="margin-top: 1.5rem;">
+                    <a href="transaction.html" class="btn btn-success">
+                        <i class="fas fa-plus"></i>
+                        Deposit
+                    </a>
+                    <a href="statement.html" class="btn btn-primary">
+                        <i class="fas fa-file-invoice"></i>
+                        Statement
+                    </a>
+                </div>
+            </div>
+        </div>
+    </div>
+    
+    <datalist id="accountsList"></datalist>
+    
+    <!-- Footer -->
+    <footer>
+        <p>© 2026 Digital Banking System. All rights reserved.</p>
+    </footer>
+    
+    <script src="common.js"></script>
+    <script>
+        const form = document.getElementById('balanceForm');
+        const submitBtn = document.getElementById('submitBtn');
+        const accountNoInput = document.getElementById('accountNo');
+        
+        // Load accounts
+        loadAccounts();
+        
+        // Form submission
+        form.addEventListener('submit', async function(e) {
+            e.preventDefault();
+            hideResult('result');
+            document.getElementById('balanceDisplay').style.display = 'none';
+            
+            const accountNo = accountNoInput.value.trim();
+            
+            if (!accountNo) {
+                showFieldError(accountNoInput, 'Please enter account number');
+                return;
+            }
+            
+            if (!/^\d+$/.test(accountNo)) {
+                showFieldError(accountNoInput, 'Account number must contain only digits');
+                return;
+            }
+            
+            setLoading(submitBtn, true);
+            
+            try {
+                // Get balance from API
+                const balance = await apiCall(`/api/accounts/${accountNo}/balance`);
+                
+                // Get account details from cache
+                const account = getAccountFromCache(accountNo);
+                
+                if (account) {
+                    document.getElementById('displayAccNo').textContent = account.accountNo;
+                    document.getElementById('displayName').textContent = account.customerName;
+                    document.getElementById('displayType').textContent = account.accountType;
+                } else {
+                    document.getElementById('displayAccNo').textContent = accountNo;
+                    document.getElementById('displayName').textContent = '-';
+                    document.getElementById('displayType').textContent = '-';
+                }
+                
+                document.getElementById('displayBalance').textContent = parseFloat(balance).toFixed(2);
+                document.getElementById('balanceDisplay').style.display = 'block';
+                
+                clearFieldError(accountNoInput);
+                
+            } catch (error) {
+                showResult('result', error.message || 'Account not found', 'error');
+                showToast(error.message, 'error');
+            } finally {
+                setLoading(submitBtn, false);
+            }
+        });
+    </script>
+</body>
+</html>
